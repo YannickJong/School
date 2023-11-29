@@ -1,5 +1,8 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
+np.random.seed(61789324)
 
 class BB84:
     """A class for the BB84 protocol"""
@@ -62,6 +65,7 @@ class BB84:
         if eve:
             bases_e = self.generate_bases()
             alpha_list = np.array([0 if basis == "+" else -45 for basis in bases_e])
+            bits_e = []
 
         bits_b = []
 
@@ -78,6 +82,7 @@ class BB84:
                 # Eve measures the photons in her chosen basis
                 received_photons = self.polarizer(sent_photons, alpha)
                 bit_e = self.measurement(received_photons)
+                bits_e.append(bit_e)
                 beta = self.bit_map[(bases_e[i], bit_e)]
                 # Eve sends photons to Bob corresponding to the basis she
                 # measured in and the bit she measured
@@ -89,7 +94,8 @@ class BB84:
             bits_b.append(bit_b)
 
         bits_b = np.array(bits_b)
-
+        if eve:
+            bits_e = np.array(bits_e)
         # Alice and Bob compare their bases and keep the bits where they
         # match
         K_a = np.where(bases_a == bases_b, bits_a, "")
@@ -99,13 +105,37 @@ class BB84:
 
         # Alice and Bob compare their keys
         if np.array_equal(K_a, K_b):
-            print("No eavesdropper")
-            return K_a
+            # print("No eavesdropper")
+            return bases_a, bits_a, bases_b, bits_b, K_a
         else:
-            print("Eavesdropper detected")
-            return K_a, K_b
+            # print("Eavesdropper detected")
+            return bases_a, bits_a, bases_e, bits_e, bases_b, bits_b, K_a, K_b
 
 
 bb84 = BB84(100, 100)
-photons = bb84.send_photons(-45)
-bb84.generate_key(eve=True)
+lengths = []
+sims = 1000
+for i in range(sims):
+    if i % 10 == 0:
+        print(i)
+    result = bb84.generate_key(eve=False)
+    lengths.append(len(result[4]))
+
+def func(x, a, x0, sigma):
+    return a * np.exp(-(x - x0)**2 / (2 * sigma**2))
+
+
+hist, bin_edges = np.histogram(lengths, bins='auto', density=True)
+bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+popt, pcov = curve_fit(func, bin_centers, hist, p0=[1, np.mean(lengths), np.std(lengths)])
+
+plt.hist(lengths, bins='auto', density=True, alpha=0.5, label='Histogram')
+plt.plot(bin_centers, func(bin_centers, *popt), 'r--', label='Fitted Curve')
+plt.legend()
+plt.xlabel("Length of shared key")
+plt.ylabel("Probability density")
+plt.grid()
+plt.savefig("BB84_histogram2.pdf", bbox_inches='tight', dpi=300)
+print(popt, np.sqrt(np.diag(pcov)))
+plt.show()
