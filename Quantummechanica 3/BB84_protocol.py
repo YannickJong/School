@@ -1,11 +1,19 @@
 import numpy as np
 
-np.random.seed(42)
+
+def print_for_excel(arr: np.ndarray):
+    for i in range(arr.shape[0]):
+        print(arr[i], end="\n")
+    return None
+
+
+np.random.seed(425)
 Oa = np.random.choice(["x", "z"], size=30)
 S = np.random.choice(["a", "b"], size=30)
 M = np.where(S == "a", 0, 1)
 
 Ob = np.random.choice(["x", "z"], size=30)
+print_for_excel(Ob)
 R = np.where(Ob == Oa, M, np.random.choice([0, 1]))
 
 Aar = np.where(Oa == Ob, "a", "r")
