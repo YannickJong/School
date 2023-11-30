@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-np.random.seed(61789324)
+# np.random.seed(61789324)
 
 class BB84:
     """A class for the BB84 protocol"""
@@ -113,29 +113,12 @@ class BB84:
 
 
 bb84 = BB84(100, 100)
-lengths = []
-sims = 1000
+sims = 10000
+lengths = np.ndarray(shape=(sims, 1))
 for i in range(sims):
-    if i % 10 == 0:
-        print(i)
+    if i % 100 == 0:
+        print(f"{i/100}%")
     result = bb84.generate_key(eve=False)
-    lengths.append(len(result[4]))
+    lengths[i] = len(result[4])
 
-def func(x, a, x0, sigma):
-    return a * np.exp(-(x - x0)**2 / (2 * sigma**2))
-
-
-hist, bin_edges = np.histogram(lengths, bins='auto', density=True)
-bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-
-popt, pcov = curve_fit(func, bin_centers, hist, p0=[1, np.mean(lengths), np.std(lengths)])
-
-plt.hist(lengths, bins='auto', density=True, alpha=0.5, label='Histogram')
-plt.plot(bin_centers, func(bin_centers, *popt), 'r--', label='Fitted Curve')
-plt.legend()
-plt.xlabel("Length of shared key")
-plt.ylabel("Probability density")
-plt.grid()
-plt.savefig("BB84_histogram2.pdf", bbox_inches='tight', dpi=300)
-print(popt, np.sqrt(np.diag(pcov)))
-plt.show()
+np.savetxt('100photons.txt', lengths, delimiter=',', fmt='%2.2d')
